@@ -1,0 +1,37 @@
+Create VM:
+gcloud compute instances create java-vm \
+    --zone=us-central1-a \
+    --machine-type=e2-medium \
+    --image-family=debian-11 \
+    --image-project=debian-cloud \
+    --tags=http-server \
+    --boot-disk-size=20GB
+
+Enable Http port:
+gcloud compute firewall-rules create allow-http \
+    --allow=tcp:8080 \
+    --source-ranges=0.0.0.0/0 \
+    --target-tags=http-server \
+    --description="Allow port 80 access to http-server"
+
+connect to VM:
+gcloud compute ssh java-vm --zone=us-central1-a
+
+Update OS and install Java:
+
+sudo apt update
+sudo apt install openjdk-17-jdk -y
+java -version
+
+copy .jar to remote vm:
+gcloud compute scp target/myapp.jar java-vm:~ --zone=us-central1-a
+
+run java application on remote VM:
+java -jar myapp.jar
+
+Display project Vm instances:
+gcloud compute instances list
+
+Access application:
+http://[EXTERNAL_IP]:8080
+
