@@ -1,0 +1,80 @@
+
+Step-by-Step Guide: Deploying Spring Boot to Google Cloud Run
+
+
+STEP 1: PREREQUISITES
+
+- Google Cloud Project with Billing Enabled
+- Spring Boot App (REST or Web)
+- GCloud SDK installed and configured
+- Docker installed
+- Java 17+ installed
+
+STEP 1: Set Up GCP Project
+---------------------------
+gcloud config set project <YOUR_PROJECT_ID>
+gcloud services enable run.googleapis.com
+gcloud services enable artifactregistry.googleapis.com
+gcloud services enable containerregistry.googleapis.com
+
+STEP 2: Configure Spring Boot App
+----------------------------------
+In src/main/resources/application.properties:
+server.port=8080
+
+STEP 3: Create Dockerfile
+---------------------------
+# Dockerfile (in project root):
+FROM eclipse-temurin:17-jdk-alpine as builder
+WORKDIR /app
+COPY . .
+RUN ./mvnw package -DskipTests
+
+FROM eclipse-temurin:17-jre-alpine
+VOLUME /tmp
+COPY --from=builder /app/target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java","-jar","/app.jar"]
+
+STEP 4: Build and Push Docker Image
+------------------------------------
+# Step 4.1: Create Artifact Registry
+
+gcloud artifacts repositories create springboot-repo \
+    --repository-format=docker \
+    --location=us-central1
+
+# Step 4.2: Authenticate Docker
+gcloud auth configure-docker us-central1-docker.pkg.dev
+
+# Step 4.3: Build and Push
+docker build -t us-central1-docker.pkg.dev/<PROJECT_ID>/springboot-repo/springboot-app .
+docker push us-central1-docker.pkg.dev/<PROJECT_ID>/springboot-repo/springboot-app
+
+STEP 5: Deploy to Cloud Run
+-----------------------------
+gcloud run deploy springboot-app \
+  --image us-central1-docker.pkg.dev/<PROJECT_ID>/springboot-repo/springboot-app \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --memory 512Mi \
+  --port 8080
+
+STEP 6: Secure with IAM (Optional)
+-----------------------------------
+gcloud run services add-iam-policy-binding springboot-app \
+  --member="user:your_email@example.com" \
+  --role="roles/run.invoker" \
+  --region=us-central1
+
+STEP 7: Test Your App
+-----------------------
+curl https://<your-cloud-run-url>/api/hello
+
+STEP 8: Clean Up Resources
+----------------------------
+gcloud run services delete springboot-app --region=us-central1
+gcloud artifacts repositories delete springboot-repo --location=us-central1
+
+
