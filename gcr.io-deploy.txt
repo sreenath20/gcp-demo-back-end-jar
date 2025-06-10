@@ -1,0 +1,14 @@
+Instructions to deply to google container registry (GCR)
+- Stores Docker container images in regions like:
+  - gcr.io
+  - us.gcr.io
+  - eu.gcr.io
+  - asia.gcr.io
+
+gcloud builds submit --tag gcr.io/<PROJECT_ID>/<APP_NAME>
+
+gcloud run deploy <APP_NAME> \
+  --image=gcr.io/<PROJECT_ID>/<APP_NAME> \
+  --platform=managed \
+  --region=<REGION> \
+  --allow-unauthenticated
